@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orb Studio</title>
+<link rel="stylesheet" href="src/orb.css">
+<link rel="stylesheet" href="src/orb-controls.css">
+</head>
+<body>
+  <main class="dev">
+    <section class="stage" id="stage" data-bg="dark" aria-label="Orb preview">
+      <h1 class="stage-title">AI Assistant Orb</h1>
+    </section>
+    <aside class="panel" id="panel" aria-label="Development controls"></aside>
+  </main>
+
+<script type="module">
+  import { OrbEngine } from './src/orb-engine.js';
+  import { createControlPanel } from './src/orb-controls.js';
+
+  const stage = document.getElementById('stage');
+  try {
+    const orb = await OrbEngine.mount(stage, { src: 'assets/orb.svg' });
+    createControlPanel(orb, document.getElementById('panel'), { stage });
+    window.orb = orb; // try the API from the console: orb.setState('processing')
+  } catch (err) {
+    console.error(err);
+    stage.insertAdjacentHTML('beforeend', `<p class="stage-error">Could not start the orb: ${err.message}.
+      Open this page through a local server (e.g. <code>node tools/serve.mjs</code>), not as a file.</p>`);
+  }
+</script>
+<noscript><p style="color:#ffc56b;padding:16px">The orb studio needs JavaScript.</p></noscript>
+</body>
+</html>

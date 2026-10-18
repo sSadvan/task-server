@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orb Avatar</title>
+<!--
+  Bare avatar for embedding (e.g. a frameless, transparent Electron window).
+  No page background, no controls; the orb fills the window and scales with it.
+  Query options: ?state=listening&symbol=code&fps=30&demo=1
+  The page exposes the engine as window.orb for the host application.
+-->
+<link rel="stylesheet" href="src/orb.css">
+<style>
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
+  body { display: grid; place-items: center; }
+  /* Fill the smaller window dimension; the SVG itself has no fixed size. */
+  .orb-host { width: min(100vw, 100vh); }
+  /* Optional drag region for frameless windows: add class="drag" to <body>. */
+  body.drag { -webkit-app-region: drag; }
+</style>
+</head>
+<body>
+<script type="module">
+  import { OrbEngine } from './src/orb-engine.js';
+
+  const q = new URLSearchParams(location.search);
+  const orb = await OrbEngine.mount(document.body, {
+    src: 'assets/orb.svg',
+    state: q.get('state') || 'idle',
+    inactiveFps: 30,               // throttle when the window is not focused
+  });
+  if (q.get('symbol')) orb.setSymbol(q.get('symbol'), { immediate: true });
+  if (q.get('fps')) orb.setParameter('maxFps', Number(q.get('fps')));
+  window.orb = orb;
+
+  // ?demo=1 cycles through the states with simulated speech while listening.
+  if (q.get('demo')) {
+    const states = ['idle', 'listening', 'processing', 'memory'];
+    let i = 0;
+    setInterval(() => orb.setState(states[++i % states.length]), 4000);
+    setInterval(() => {
+      if (orb.getState() === 'listening') orb.setAudioLevel(Math.max(0, Math.sin(performance.now() / 140) * 0.6 + Math.random() * 0.4));
+    }, 50);
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,243 @@
+{
+  "version": 1,
+  "state": "idle",
+  "global": {
+    "layers": {
+      "layerGlow": true,
+      "layerBack": true,
+      "layerCore": true,
+      "layerInner": true,
+      "layerMain": true,
+      "layerHighlights": true,
+      "layerInterface": true,
+      "layerFront": true
+    },
+    "transitions": {
+      "colorDuration": 900,
+      "symbolDuration": 500,
+      "motionDuration": 1200,
+      "glowDuration": 800,
+      "generalDuration": 600,
+      "easing": "easeInOutCubic"
+    },
+    "system": {
+      "reducedMotion": "auto",
+      "maxFps": 60
+    }
+  },
+  "presets": {
+    "idle": {
+      "colors": {
+        "primary": "#2f7dff",
+        "secondary": "#2ee6ff",
+        "accent": "#8b6cff",
+        "highlight": "#d9fbff",
+        "glow": "#3aa8ff",
+        "core": "#040815"
+      },
+      "appearance": {
+        "opacity": 1,
+        "ribbonOpacity": 1,
+        "ribbonThickness": 0,
+        "highlightIntensity": 1
+      },
+      "motion": {
+        "animationSpeed": 1,
+        "backSpeed": 5,
+        "backDirection": -1,
+        "innerSpeed": 8,
+        "innerDirection": 1,
+        "mainSpeed": 6,
+        "mainDirection": 1,
+        "frontSpeed": 9,
+        "frontDirection": -1,
+        "ribbonAmplitude": 0.35,
+        "breathingIntensity": 0.45,
+        "breathingFrequency": 0.16,
+        "pulseIntensity": 0.05,
+        "pulseFrequency": 0.5,
+        "highlightSpeed": 0.3
+      },
+      "lighting": {
+        "glowIntensity": 0.55,
+        "glowRadius": 0.5,
+        "innerIllumination": 0.45,
+        "outerIllumination": 0.5,
+        "highlightBrightness": 0.6
+      },
+      "interface": {
+        "symbol": "eyes",
+        "symbolColor": "#e6fdff",
+        "symbolScale": 1,
+        "symbolX": 0,
+        "symbolY": 0,
+        "symbolOpacity": 1,
+        "eyesVisible": true,
+        "blink": true,
+        "soundwaveVisible": false,
+        "particlesVisible": false,
+        "audioReactivity": 0
+      }
+    },
+    "listening": {
+      "colors": {
+        "primary": "#13c26b",
+        "secondary": "#5dffb0",
+        "accent": "#1ed0c4",
+        "highlight": "#e4ffef",
+        "glow": "#2ee88a",
+        "core": "#03100a"
+      },
+      "appearance": {
+        "opacity": 1,
+        "ribbonOpacity": 1,
+        "ribbonThickness": 0,
+        "highlightIntensity": 1
+      },
+      "motion": {
+        "animationSpeed": 1.2,
+        "backSpeed": 5,
+        "backDirection": -1,
+        "innerSpeed": 8,
+        "innerDirection": 1,
+        "mainSpeed": 6,
+        "mainDirection": 1,
+        "frontSpeed": 9,
+        "frontDirection": -1,
+        "ribbonAmplitude": 0.45,
+        "breathingIntensity": 0.3,
+        "breathingFrequency": 0.16,
+        "pulseIntensity": 0.3,
+        "pulseFrequency": 1.1,
+        "highlightSpeed": 0.3
+      },
+      "lighting": {
+        "glowIntensity": 0.65,
+        "glowRadius": 0.5,
+        "innerIllumination": 0.55,
+        "outerIllumination": 0.6,
+        "highlightBrightness": 0.6
+      },
+      "interface": {
+        "symbol": "eyes",
+        "symbolColor": "#eafff3",
+        "symbolScale": 1,
+        "symbolX": 0,
+        "symbolY": 0,
+        "symbolOpacity": 1,
+        "eyesVisible": true,
+        "blink": true,
+        "soundwaveVisible": true,
+        "particlesVisible": false,
+        "audioReactivity": 1
+      }
+    },
+    "processing": {
+      "colors": {
+        "primary": "#ff2f7a",
+        "secondary": "#ff6bd5",
+        "accent": "#a14bff",
+        "highlight": "#ffe3f3",
+        "glow": "#ff3d8b",
+        "core": "#12030b"
+      },
+      "appearance": {
+        "opacity": 1,
+        "ribbonOpacity": 1,
+        "ribbonThickness": 0,
+        "highlightIntensity": 1
+      },
+      "motion": {
+        "animationSpeed": 2.2,
+        "backSpeed": 5,
+        "backDirection": -1,
+        "innerSpeed": 8,
+        "innerDirection": 1,
+        "mainSpeed": 9,
+        "mainDirection": 1,
+        "frontSpeed": 13,
+        "frontDirection": -1,
+        "ribbonAmplitude": 0.5,
+        "breathingIntensity": 0.2,
+        "breathingFrequency": 0.16,
+        "pulseIntensity": 0.35,
+        "pulseFrequency": 1.6,
+        "highlightSpeed": 1
+      },
+      "lighting": {
+        "glowIntensity": 0.75,
+        "glowRadius": 0.6,
+        "innerIllumination": 0.75,
+        "outerIllumination": 0.65,
+        "highlightBrightness": 0.7
+      },
+      "interface": {
+        "symbol": "code",
+        "symbolColor": "#fff0f8",
+        "symbolScale": 1,
+        "symbolX": 0,
+        "symbolY": 0,
+        "symbolOpacity": 1,
+        "eyesVisible": true,
+        "blink": true,
+        "soundwaveVisible": false,
+        "particlesVisible": false,
+        "audioReactivity": 0
+      }
+    },
+    "memory": {
+      "colors": {
+        "primary": "#ffb21e",
+        "secondary": "#ffe066",
+        "accent": "#ff7a3d",
+        "highlight": "#fff6d6",
+        "glow": "#ffc23a",
+        "core": "#110b02"
+      },
+      "appearance": {
+        "opacity": 1,
+        "ribbonOpacity": 1,
+        "ribbonThickness": 0,
+        "highlightIntensity": 1
+      },
+      "motion": {
+        "animationSpeed": 0.8,
+        "backSpeed": 5,
+        "backDirection": -1,
+        "innerSpeed": 8,
+        "innerDirection": 1,
+        "mainSpeed": 6,
+        "mainDirection": 1,
+        "frontSpeed": 9,
+        "frontDirection": -1,
+        "ribbonAmplitude": 0.3,
+        "breathingIntensity": 0.35,
+        "breathingFrequency": 0.16,
+        "pulseIntensity": 0.4,
+        "pulseFrequency": 0.7,
+        "highlightSpeed": 0.3
+      },
+      "lighting": {
+        "glowIntensity": 0.6,
+        "glowRadius": 0.5,
+        "innerIllumination": 0.65,
+        "outerIllumination": 0.55,
+        "highlightBrightness": 0.6
+      },
+      "interface": {
+        "symbol": "brain",
+        "symbolColor": "#fff9e6",
+        "symbolScale": 1,
+        "symbolX": 0,
+        "symbolY": 0,
+        "symbolOpacity": 1,
+        "eyesVisible": true,
+        "blink": true,
+        "soundwaveVisible": false,
+        "particlesVisible": true,
+        "audioReactivity": 0
+      }
+    }
+  },
+  "symbols": {}
+}

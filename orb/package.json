@@ -1,0 +1,13 @@
+{
+  "name": "ai-assistant-orb",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Programmable SVG AI assistant orb with a real-time animation engine",
+  "type": "module",
+  "scripts": {
+    "start": "node tools/serve.mjs",
+    "build:svg": "python3 tools/generate_orb.py",
+    "build:presets": "node tools/export-presets.mjs",
+    "test": "node tests/acceptance.mjs"
+  }
+}
