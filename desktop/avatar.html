@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>John Orb</title>
+<!--
+  Avatar page for the Electron window. Same as orb/avatar.html, plus the wiring to main:
+  commands from John arrive through window.johnOrb (preload), clicks on the orb wake John.
+  Opened in a plain browser (no preload) it just shows the orb, which is handy for tests.
+-->
+<link rel="stylesheet" href="../orb/src/orb.css">
+<style>
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
+  body { display: grid; place-items: center; }
+  .orb-host { width: min(100vw, 100vh); cursor: pointer; }
+</style>
+</head>
+<body>
+<script type="module">
+  import { OrbEngine } from '../orb/src/orb-engine.js';
+
+  const q = new URLSearchParams(location.search);
+  const orb = await OrbEngine.mount(document.body, {
+    src: '../orb/assets/orb.svg',
+    state: q.get('state') || 'sleeping',
+  });
+  if (q.get('fps')) orb.setParameter('maxFps', Number(q.get('fps')));
+  window.orb = orb;
+
+  // Apply one command from the bridge: { state?, symbol?, audio?, fps?, immediate? }
+  window.applyCommand = (cmd) => {
+    if (cmd.fps) orb.setParameter('maxFps', cmd.fps);
+    if (cmd.state) orb.setState(cmd.state, { immediate: !!cmd.immediate });
+    if (cmd.symbol) orb.setSymbol(cmd.symbol);
+    if (cmd.audio != null) orb.setAudioLevel(cmd.audio);
+  };
+
+  const host = window.johnOrb;
+  if (host) {
+    host.onCommand(window.applyCommand);
+    // Clicks pass through the window except over the orb itself.
+    const el = document.querySelector('.orb-host');
+    el.addEventListener('mouseenter', () => host.setClickThrough(false));
+    el.addEventListener('mouseleave', () => host.setClickThrough(true));
+    el.addEventListener('click', () => host.wake());
+  }
+</script>
+</body>
+</html>

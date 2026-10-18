@@ -1,0 +1,14 @@
+{
+  "name": "john-orb",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Desktop avatar for John: the animated orb, driven by John's events over a local bridge",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node tests/bridge.test.mjs && node tests/avatar.test.mjs"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1"
+  }
+}
