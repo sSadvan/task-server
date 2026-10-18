@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orb Preview</title>
+<style>
+  :root {
+    --bg: #05070d;
+    --panel: #0b0f1a;
+    --text: #cfd8ea;
+    --muted: #7a869e;
+    --line: #1c2436;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px 16px 48px;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  h1 { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
+  p { margin: 0 0 16px; color: var(--muted); }
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: center;
+    padding: 12px 16px; margin-bottom: 20px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  }
+  .controls label { display: flex; gap: 8px; align-items: center; }
+  select, input[type=color] { background: #111827; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; }
+  .stage {
+    display: flex; flex-wrap: wrap; gap: 24px; align-items: center; justify-content: center;
+    padding: 24px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--line);
+  }
+  .stage--dark { background: radial-gradient(circle at 50% 40%, #0d1426, #03050a 70%); }
+  .stage--checker { background: repeating-conic-gradient(#c9ccd3 0 25%, #f2f3f5 0 50%) 0 0 / 18px 18px; }
+  .stage--neutral { background: #3a3f4a; }
+  .cell { display: flex; flex-direction: column; align-items: center; gap: 6px; max-width: 100%; }
+  .cell svg { display: block; max-width: 100%; height: auto; }
+  .cell span { font-size: 12px; color: var(--muted); }
+  .stage--checker .cell span { color: #444; }
+  .note { padding: 12px 16px; border-radius: 8px; background: #2a1d08; color: #ffd690; display: none; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+  <h1>AI Assistant Orb</h1>
+  <p>Visual inspection page for <code>orb.svg</code>. Each preview is the same SVG, inlined so CSS variables apply.</p>
+
+  <div class="note" id="note">
+    Could not load <code>orb.svg</code> via <code>fetch</code> (browsers block this on <code>file://</code>).
+    Showing a static fallback instead. To get the interactive controls, serve this folder with
+    <code>python3 -m http.server</code> and open <code>http://localhost:8000/preview.html</code>.
+  </div>
+
+  <div class="controls">
+    <label>State
+      <select id="state">
+        <option value="idle">idle (blue / cyan)</option>
+        <option value="listening">listening (green)</option>
+        <option value="processing">processing (magenta)</option>
+        <option value="memory">memory (gold)</option>
+      </select>
+    </label>
+    <label>Symbol
+      <select id="symbol">
+        <option value="eyes">eyes</option>
+        <option value="code">code &lt;/&gt;</option>
+        <option value="wave">sound wave</option>
+        <option value="neural">neural</option>
+        <option value="custom">custom (injected star)</option>
+      </select>
+    </label>
+    <label><input type="checkbox" id="particles"> Particles</label>
+    <label>Primary override <input type="color" id="primary" value="#2f7dff"></label>
+    <label><input type="checkbox" id="useOverride"> use override</label>
+  </div>
+
+  <div class="stage stage--dark" id="dark"></div>
+  <div class="stage stage--checker" id="checker"></div>
+  <div class="stage stage--neutral" id="neutral"></div>
+
+<script>
+  const SIZES = { dark: [512, 256, 128, 64], checker: [512, 128], neutral: [256, 128] };
+  let counter = 0;
+
+  // Inline copies need unique IDs, otherwise every url(#...) resolves to the first orb.
+  function uniquify(text) {
+    const n = ++counter;
+    const ids = [...text.matchAll(/\sid="([^"]+)"/g)].map(m => m[1]);
+    for (const id of ids) {
+      text = text
+        .split(`id="${id}"`).join(`id="${id}--${n}"`)
+        .split(`url(#${id})`).join(`url(#${id}--${n})`)
+        .split(`href="#${id}"`).join(`href="#${id}--${n}"`)
+        .split(`aria-labelledby="${id}"`).join(`aria-labelledby="${id}--${n}"`);
+    }
+    return text;
+  }
+
+  function addCell(stage, size, inner) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.innerHTML = inner + `<span>${size} × ${size}</span>`;
+    stage.appendChild(cell);
+    return cell;
+  }
+
+  const CUSTOM_ICON =
+    '<path d="M0 -38L10 -10L38 0L10 10L0 38L-10 10L-38 0L-10 -10Z" fill="var(--orb-symbol-color)"/>';
+
+  function apply() {
+    const state = document.getElementById('state').value;
+    const symbol = document.getElementById('symbol').value;
+    const particles = document.getElementById('particles').checked ? 'on' : 'off';
+    const override = document.getElementById('useOverride').checked;
+    const primary = document.getElementById('primary').value;
+    document.querySelectorAll('svg.orb').forEach(svg => {
+      svg.dataset.state = state;
+      svg.dataset.symbol = symbol;
+      svg.dataset.particles = particles;
+      if (override) svg.style.setProperty('--orb-primary', primary);
+      else svg.style.removeProperty('--orb-primary');
+      const slot = svg.querySelector('[data-symbol="custom"]:not(use)');
+      if (slot && !slot.childElementCount) slot.innerHTML = CUSTOM_ICON;
+    });
+  }
+
+  fetch('orb.svg')
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
+    .then(text => {
+      for (const [stageId, sizes] of Object.entries(SIZES)) {
+        const stage = document.getElementById(stageId);
+        for (const size of sizes) {
+          const svgText = uniquify(text).replace(/width="512" height="512"/, `width="${size}" height="${size}"`);
+          addCell(stage, size, svgText);
+        }
+      }
+      document.querySelectorAll('.controls select, .controls input')
+        .forEach(el => el.addEventListener('input', apply));
+      apply();
+    })
+    .catch(() => {
+      document.getElementById('note').style.display = 'block';
+      document.querySelector('.controls').style.display = 'none';
+      for (const [stageId, sizes] of Object.entries(SIZES)) {
+        const stage = document.getElementById(stageId);
+        for (const size of sizes) addCell(stage, size, `<img src="orb.svg" width="${size}" height="${size}" alt="AI assistant orb">`);
+      }
+    });
+</script>
+</body>
+</html>
