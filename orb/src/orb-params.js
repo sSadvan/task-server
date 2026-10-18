@@ -75,6 +75,9 @@ export const PARAMS = {
   pulseIntensity: num('motion', 0.05, 0, 1, 0.01, 'Pulse', 'Rhythmic pulse in ribbon scale, inner light and glow.'),
   pulseFrequency: num('motion', 0.5, 0.1, 4, 0.05, 'Pulse rate', 'Pulses per second.', { unit: 'Hz' }),
   highlightSpeed: num('motion', 0.3, 0, 2, 0.01, 'Highlight drift', 'Speed of the specular highlight drift.'),
+  speechIntensity: num('motion', 0, 0, 1, 0.01, 'Speech rhythm',
+    'Synthetic talking rhythm: each ribbon layer jumps in its own syllable-like bursts, with pauses between phrases. Not tied to audio input.'),
+  speechRate: num('motion', 4.5, 1, 10, 0.1, 'Speech rate', 'Syllable bursts per second for the speech rhythm.', { unit: 'Hz' }),
   transitionPace: num('motion', 1, 0.25, 4, 0.05, 'Transition pace',
     'Multiplier on all transition durations when entering this state (leaving it uses the average of both states), e.g. 2.5 makes falling asleep and waking up slow and gentle.'),
 

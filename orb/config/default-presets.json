@@ -57,6 +57,8 @@
         "pulseIntensity": 0.05,
         "pulseFrequency": 0.5,
         "highlightSpeed": 0.3,
+        "speechIntensity": 0,
+        "speechRate": 4.5,
         "transitionPace": 1
       },
       "lighting": {
@@ -112,6 +114,8 @@
         "pulseIntensity": 0.3,
         "pulseFrequency": 1.1,
         "highlightSpeed": 0.3,
+        "speechIntensity": 0,
+        "speechRate": 4.5,
         "transitionPace": 1
       },
       "lighting": {
@@ -167,6 +171,8 @@
         "pulseIntensity": 0.35,
         "pulseFrequency": 1.6,
         "highlightSpeed": 1,
+        "speechIntensity": 0,
+        "speechRate": 4.5,
         "transitionPace": 1
       },
       "lighting": {
@@ -222,6 +228,8 @@
         "pulseIntensity": 0.4,
         "pulseFrequency": 0.7,
         "highlightSpeed": 0.3,
+        "speechIntensity": 0,
+        "speechRate": 4.5,
         "transitionPace": 1
       },
       "lighting": {
@@ -242,6 +250,63 @@
         "blink": true,
         "soundwaveVisible": false,
         "particlesVisible": true,
+        "sleepIndicatorVisible": false,
+        "audioReactivity": 0
+      }
+    },
+    "talking": {
+      "colors": {
+        "primary": "#2f7dff",
+        "secondary": "#2ee6ff",
+        "accent": "#8b6cff",
+        "highlight": "#d9fbff",
+        "glow": "#3aa8ff",
+        "core": "#040815"
+      },
+      "appearance": {
+        "opacity": 1,
+        "ribbonOpacity": 1,
+        "ribbonThickness": 0,
+        "highlightIntensity": 1
+      },
+      "motion": {
+        "animationSpeed": 1.15,
+        "backSpeed": 5,
+        "backDirection": -1,
+        "innerSpeed": 8,
+        "innerDirection": 1,
+        "mainSpeed": 6,
+        "mainDirection": 1,
+        "frontSpeed": 9,
+        "frontDirection": -1,
+        "ribbonAmplitude": 0.35,
+        "breathingIntensity": 0.25,
+        "breathingFrequency": 0.16,
+        "pulseIntensity": 0,
+        "pulseFrequency": 0.5,
+        "highlightSpeed": 0.3,
+        "speechIntensity": 0.85,
+        "speechRate": 4.5,
+        "transitionPace": 0.6
+      },
+      "lighting": {
+        "glowIntensity": 0.6,
+        "glowRadius": 0.5,
+        "innerIllumination": 0.55,
+        "outerIllumination": 0.55,
+        "highlightBrightness": 0.6
+      },
+      "interface": {
+        "symbol": "eyes",
+        "symbolColor": "#e6fdff",
+        "symbolScale": 1,
+        "symbolX": 0,
+        "symbolY": 0,
+        "symbolOpacity": 1,
+        "eyesVisible": true,
+        "blink": true,
+        "soundwaveVisible": false,
+        "particlesVisible": false,
         "sleepIndicatorVisible": false,
         "audioReactivity": 0
       }
@@ -277,6 +342,8 @@
         "pulseIntensity": 0,
         "pulseFrequency": 0.5,
         "highlightSpeed": 0.15,
+        "speechIntensity": 0,
+        "speechRate": 4.5,
         "transitionPace": 2.5
       },
       "lighting": {

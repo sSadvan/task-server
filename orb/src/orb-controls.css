@@ -80,6 +80,7 @@ button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-
 .cp-state[data-state="processing"] { --dot: #ff4f9a; }
 .cp-state[data-state="memory"] { --dot: #ffc23a; }
 .cp-state[data-state="sleeping"] { --dot: #7d8fd6; }
+.cp-state[data-state="talking"] { --dot: #8fd8ff; }
 .cp-state[aria-pressed="true"] { border-color: var(--dot, var(--accent)); background: #16203a; }
 .cp-fps { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
 

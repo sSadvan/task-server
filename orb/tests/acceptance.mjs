@@ -95,7 +95,7 @@ await test('1. Renders with a transparent background', async () => {
 });
 
 await test('2. All states (incl. sleeping) activate through the API', async () => {
-  for (const s of ['idle', 'listening', 'processing', 'memory', 'sleeping']) {
+  for (const s of ['idle', 'listening', 'processing', 'memory', 'sleeping', 'talking']) {
     assert(await page.evaluate(s => orb.setState(s), s) === true, `setState(${s}) returned false`);
     assert(await page.evaluate(() => orb.getState()) === s, `getState() !== ${s}`);
     await wait(settle);
@@ -152,24 +152,32 @@ const rate = async (ribbon = 'main-1', ms = 1200) => {
   await page.bringToFront();
   return page.evaluate(async ([r, ms]) => {
     const read = () => Number((/rotate\(([-\d.e]+)/.exec(orb.svg.querySelector(`[data-ribbon="${r}"]`).getAttribute('transform')) || [])[1] || 0);
-    const a0 = read(), t0 = performance.now();
+    // Read right after a rendered frame and use that frame's timestamp, so a stale
+    // (throttled) frame never stretches or shrinks the measured interval.
+    const frame = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(t => res(t))));
+    const t0 = await frame(), a0 = read();
     await new Promise(res => setTimeout(res, ms));
+    const t1 = await frame();
     let d = read() - a0;
     while (d > 180) d -= 360;
     while (d < -180) d += 360;
-    return d / ((performance.now() - t0) / 1000);
+    return d / ((t1 - t0) / 1000);
   }, [ribbon, ms]);
 };
 
 await test('5. Animation speed changes at runtime', async () => {
   await page.evaluate(() => { orb.setState('idle', { immediate: true }); orb.setParameters({ ribbonAmplitude: 0 }, { immediate: true }); });
-  await page.evaluate(() => orb.setParameter('animationSpeed', 1, { immediate: true }));
-  const r1 = await rate();
-  await page.evaluate(() => orb.setParameter('animationSpeed', 3, { immediate: true }));
-  const r3 = await rate();
+  // Alternate ×1 / ×3 twice and average, so a momentary rendering stall can't skew one sample.
+  let r1 = 0, r3 = 0;
+  for (let i = 0; i < 2; i++) {
+    await page.evaluate(() => orb.setParameter('animationSpeed', 1, { immediate: true }));
+    r1 += (await rate()) / 2;
+    await page.evaluate(() => orb.setParameter('animationSpeed', 3, { immediate: true }));
+    r3 += (await rate()) / 2;
+  }
   await page.evaluate(() => orb.resetParameters({ immediate: true }));
   const ratio = r3 / r1;
-  assert(ratio > 2.5 && ratio < 3.5, `speed ratio ${ratio.toFixed(2)} (expected ≈3)`);
+  assert(ratio > 2.5 && ratio < 3.5, `speed ratio ${ratio.toFixed(2)} (expected ≈3; ×1 ${r1.toFixed(2)}°/s, ×3 ${r3.toFixed(2)}°/s)`);
   return `×1 → ${r1.toFixed(1)}°/s, ×3 → ${r3.toFixed(1)}°/s`;
 });
 
@@ -250,7 +258,7 @@ await test('8. Custom symbols register via the documented API (sanitised)', asyn
 });
 
 await test('9. Transitions work in every direction (and redirect mid-way)', async () => {
-  const states = ['idle', 'listening', 'processing', 'memory', 'sleeping'];
+  const states = ['idle', 'listening', 'processing', 'memory', 'sleeping', 'talking'];
   await page.evaluate(() => orb.resetParameters({ immediate: true }));
   const fast = { colorDuration: 250, motionDuration: 250, glowDuration: 250, generalDuration: 250, symbolDuration: 200 };
   await page.evaluate(f => orb.setParameters(f), fast);
@@ -449,6 +457,40 @@ await test('Sleeping: slow drift, dim glow, slow breath, closed eyes, gentle in/
   assert(wake.maxColStep < 20, `wake colour jump ${wake.maxColStep.toFixed(1)}`);
   assert(geoBefore === await geo(), 'ribbon geometry changed');
   return `ribbons ${idleRate.toFixed(1)}→${sleepRate.toFixed(1)}°/s, halo ${idleHalo}→${sleepHalo}, breath ${p2p.toFixed(2)}% p2p, eyes closed @${eyes.closed}`;
+});
+
+await test('Talking: layers jump in a voice-like rhythm without audio input', async () => {
+  const sample = () => page.evaluate(async () => {
+    const scaleOf = r => Number(/scale\(([\d.]+)/.exec(orb.svg.querySelector(`[data-ribbon="${r}"]`).getAttribute('transform'))[1]);
+    const back = [], main = [];
+    const t0 = performance.now();
+    while (performance.now() - t0 < 4000) {
+      await new Promise(r => requestAnimationFrame(r));
+      back.push(scaleOf('back-1')); main.push(scaleOf('main-1'));
+    }
+    const range = a => Math.max(...a) - Math.min(...a);
+    const step = a => Math.max(...a.slice(1).map((x, i) => Math.abs(x - a[i])));
+    const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
+    const mb = mean(back), mm = mean(main);
+    const cov = back.reduce((acc, x, i) => acc + (x - mb) * (main[i] - mm), 0);
+    const corr = cov / Math.sqrt(back.reduce((a, x) => a + (x - mb) ** 2, 0) * main.reduce((a, x) => a + (x - mm) ** 2, 0) || 1);
+    const quiet = main.filter(x => x < Math.min(...main) + 0.003).length / main.length;
+    return { range: range(main), step: step(main), corr, quiet };
+  });
+  await page.evaluate(() => { orb.resetParameters({ immediate: true }); orb.setParameter('ribbonAmplitude', 0, { all: true, immediate: true }); });
+  await page.evaluate(() => orb.setState('idle', { immediate: true }));
+  const idle = await sample();
+  await page.evaluate(() => orb.setState('talking'));
+  await wait(1200);
+  const talk = await sample();
+  const audio = await page.evaluate(() => orb.audio);
+  await page.evaluate(() => orb.resetParameters({ immediate: true }));
+  assert(idle.range < 0.004, `idle should be steady, scale range ${idle.range.toFixed(4)}`);
+  assert(talk.range > 0.025, `talking scale range ${talk.range.toFixed(4)}`);
+  assert(talk.step > 0.003, `talking not jerky enough, max step ${talk.step.toFixed(4)}`);
+  assert(talk.corr < 0.85, `layers move in lockstep (corr ${talk.corr.toFixed(2)})`);
+  assert(audio === 0, 'talking must not depend on audio input');
+  return `scale range ${idle.range.toFixed(4)}→${talk.range.toFixed(3)}, max jump ${talk.step.toFixed(4)}, layer corr ${talk.corr.toFixed(2)}`;
 });
 
 await test('Extra: pause, reduced motion and per-frame cost', async () => {

@@ -99,7 +99,7 @@ The SVG has no fixed size and fills its host. Size the host with `width` or `--o
 ## Public API
 
 ```js
-orb.setState('listening')                 // 'idle' | 'listening' | 'processing' | 'memory' | 'sleeping' | registered
+orb.setState('listening')                 // 'idle' | 'listening' | 'processing' | 'memory' | 'talking' | 'sleeping' | registered
 orb.setParameter('glowIntensity', 0.8)
 orb.setParameter('animationSpeed', 1.4)
 orb.setParameters({ pulseIntensity: 0.5, lighting: { glowRadius: 0.7 } })  // flat or grouped
@@ -149,10 +149,32 @@ orb.getState(); orb.getParameter('glowIntensity'); orb.getParameters({ grouped: 
 | `listening` | Green | eyes | Sound-wave rings, stronger pulse, reacts to `setAudioLevel()` (also animates without input) |
 | `processing` | Magenta / crimson | code `</>` | Faster ribbons (`animationSpeed` 2.2 is the configurable processing speed), stronger inner light and glow |
 | `memory` | Gold / amber | brain | Slower ribbons, rhythmic pulse, warm inner light, drifting particles |
+| `talking` | Blue / cyan (idle look) | eyes | Ribbon layers jump in a voice-like rhythm, each layer on its own beat, with pauses between phrases. Synthetic, so no audio needed. |
 | `sleeping` | Muted indigo / blue-violet | eyes-closed | Very slow drift, dim glow, faint inner light, slow breath; optional "z" indicator |
 
 The presets live in `src/orb-states.js` and list only what differs from the schema defaults.
 That means a new parameter automatically gets a sensible value in every state.
+
+### Talking
+
+Use `orb.setState('talking')` while the assistant is answering, and `orb.setState('idle')` when
+it finishes.
+
+**How it looks:** like idle, but the four ribbon layers pulse in syllable-like bursts. Each
+burst has a sharp rise and a quick decay, the next height is random, and short pauses fall
+between phrases. Every layer follows its own beat, like the bars of an equaliser. The glow,
+inner light, rim and eyes move with the overall level.
+
+**It doesn't use audio input.** The rhythm is generated inside the engine. For level-driven
+motion from a real microphone, use `setAudioLevel()` in `listening`.
+
+| Parameter | Controls |
+| --- | --- |
+| `speechIntensity` | Strength of the jumps: 0 is off, 0.85 is the talking default |
+| `speechRate` | Syllable bursts per second (4.5 by default) |
+
+`transitionPace` is 0.6, so the animation starts and stops quickly when speech begins or
+ends. Any other state can borrow the rhythm, e.g. `setParameter('speechIntensity', 0.5)`.
 
 ### Sleeping
 
@@ -258,6 +280,8 @@ with a console warning. Most values are normalised to 0–1.
 | `pulseIntensity` | number | 0 – 1 | `0.05` | Rhythmic pulse in ribbon scale, inner light and glow. |
 | `pulseFrequency` | number | 0.1 – 4 Hz | `0.5` | Pulses per second. |
 | `highlightSpeed` | number | 0 – 2 | `0.3` | Speed of the specular highlight drift. |
+| `speechIntensity` | number | 0 – 1 | `0` | Synthetic talking rhythm: each ribbon layer jumps in its own syllable-like bursts, with pauses between phrases. Not tied to audio input. |
+| `speechRate` | number | 1 – 10 Hz | `4.5` | Syllable bursts per second for the speech rhythm. |
 | `transitionPace` | number | 0.25 – 4 | `1` | Multiplier on all transition durations when entering this state (leaving it uses the average of both states), e.g. 2.5 makes falling asleep and waking up slow and gentle. |
 
 #### Lighting *(per state)*

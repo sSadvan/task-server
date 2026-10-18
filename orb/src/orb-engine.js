@@ -18,7 +18,7 @@ import { CONFIG_VERSION } from './orb-config-version.js';
 export { CONFIG_VERSION };
 
 const SYMBOL_UNIT = 60;     // symbolX/Y of ±1 moves the symbol ±60 user units
-const MAX_DT = 0.1;         // clamp frame delta (s) after tab switches / stalls
+const MAX_DT = 0.25;        // clamp frame delta (s) after tab switches / stalls (≥4 fps keeps real time)
 
 const COLOR_VARS = {
   primary: '--orb-primary', secondary: '--orb-secondary', accent: '--orb-accent',
@@ -41,6 +41,9 @@ const RIBBON_VARIETY = {
   'inner-1': [1.0, 0.1, 0.5], 'inner-2': [0.75, 0.08, 2.7],
   'front-1': [1.0, 0.06, 1.8], 'front-2': [1.35, 0.07, 4.4],
 };
+
+// Ribbon layer -> speech-rhythm band.
+const SPEECH_BAND = { layerBack: 0, layerInner: 1, layerMain: 2, layerFront: 3 };
 
 // Reduced-motion multipliers.
 const REDUCED = { rotation: 0.15, wobble: 0.3, pulse: 0.25, breath: 0.4, rings: 0.3, highlight: 0.3 };
@@ -120,6 +123,11 @@ export class OrbEngine {
     this.highlightPhase = 0;
     this.ringPhase = 0;
     this.sleepPhase = 0;
+    // Speech rhythm: one band per ribbon layer (back, inner, main, front).
+    this.speechBands = [0, 1, 2, 3].map(() => ({ level: 0, target: 0, next: 0 }));
+    this.speechClock = 0;
+    this.phraseEnd = 2;
+    this.pauseEnd = 0;
     this.durationScale = 1;
     this.audio = 0;
     this.audioTarget = 0;
@@ -706,6 +714,11 @@ export class OrbEngine {
     if (this.audio < 0.001 && this.audioTarget === 0) this.audio = 0;
     const audio = this.audio * v.audioReactivity;
 
+    const speechAmt = v.speechIntensity * (this.reduced ? 0.35 : 1);
+    this._updateSpeech(this.paused ? 0 : dt, v.speechRate, speechAmt > 0.001);
+    const bands = this.speechBands.map(b => b.level * speechAmt);
+    const speech = (bands[0] + bands[1] + bands[2] + bands[3]) / 4;
+
     const pulseWave = (0.5 - 0.5 * Math.cos(this.pulsePhase)) ** 2;     // soft beat, 0..1
     const pulse = v.pulseIntensity * rm.pulse * pulseWave;
     const breath = v.breathingIntensity * rm.breath * Math.sin(this.breathPhase);
@@ -715,13 +728,13 @@ export class OrbEngine {
     this._setVar('--orb-opacity', f3(v.opacity));
     this._setVar('--rb-width', f3(v.ribbonThickness * 8));
     this._setVar('--orb-edge-opacity', f3(v.highlightIntensity));
-    this._setVar('--orb-rim-opacity', f3(clamp(v.outerIllumination * 0.44 * (1 + 0.3 * pulse))));
+    this._setVar('--orb-rim-opacity', f3(clamp(v.outerIllumination * 0.44 * (1 + 0.3 * pulse + 0.4 * speech))));
 
     // ---- whole orb: breathing ---------------------------------------------
-    this._attr(this.el.root, 'transform', `scale(${f3(1 + 0.022 * breath + 0.012 * audio)})`);
+    this._attr(this.el.root, 'transform', `scale(${f3(1 + 0.022 * breath + 0.012 * audio + 0.008 * speech)})`);
 
     // ---- glow --------------------------------------------------------------
-    this._style(this.el.halo, 'opacity', f3(clamp(v.glowIntensity * (1 + 0.15 * breath + 0.45 * pulse + 0.5 * audio))));
+    this._style(this.el.halo, 'opacity', f3(clamp(v.glowIntensity * (1 + 0.15 * breath + 0.45 * pulse + 0.5 * audio + 0.6 * speech))));
     this._attr(this.el.halo, 'transform', `scale(${f3(0.78 + 0.27 * v.glowRadius + 0.02 * breath + 0.03 * pulse)})`);
 
     // ---- layers --------------------------------------------------------------
@@ -737,6 +750,7 @@ export class OrbEngine {
     const wobble = v.ribbonAmplitude * rm.wobble;
     const ribbonPulse = 1 + 0.035 * pulse + 0.03 * audio;
     this.el.ribbons.forEach((r, i) => {
+      const rp = ribbonPulse + 0.065 * bands[SPEECH_BAND[r.layer] ?? 2];
       const lname = r.layer.slice(5).toLowerCase();               // layerBack -> back
       const vel = v[`${lname}Speed`] * v[`${lname}Direction`];
       this.angles[i] = (this.angles[i] + vel * r.speed * mdt * rm.rotation) % 360;
@@ -744,12 +758,12 @@ export class OrbEngine {
       const rot = this.angles[i] + wobble * 10 * Math.sin(w);
       const squash = wobble * 0.05 * Math.sin(0.7 * w + r.phase * 1.3);
       this._attr(r.g, 'transform',
-        `rotate(${f3(rot)}) scale(${f3(ribbonPulse * (1 + squash))} ${f3(ribbonPulse * (1 - squash))})`);
+        `rotate(${f3(rot)}) scale(${f3(rp * (1 + squash))} ${f3(rp * (1 - squash))})`);
     });
 
     // ---- core inner light & highlights ---------------------------------------
     if (this.el.innerLight) {
-      this._style(this.el.innerLight, 'opacity', f3(clamp(v.innerIllumination * 2 * (0.75 + 0.5 * pulse + 0.4 * audio + 0.1 * breath))));
+      this._style(this.el.innerLight, 'opacity', f3(clamp(v.innerIllumination * 2 * (0.75 + 0.5 * pulse + 0.4 * audio + 0.9 * speech + 0.1 * breath))));
       this._attr(this.el.innerLight, 'transform', `scale(${f3(0.85 + 0.3 * v.innerIllumination + 0.08 * pulse)})`);
     }
     const hp = this.highlightPhase;
@@ -764,7 +778,7 @@ export class OrbEngine {
     }
 
     // ---- interface -------------------------------------------------------------
-    this._renderSymbol(now, dt, pulse, audio);
+    this._renderSymbol(now, dt, pulse + 0.9 * speech, audio);
 
     // ---- sound-wave rings --------------------------------------------------------
     if (this.el.soundwaves) {
@@ -852,6 +866,28 @@ export class OrbEngine {
       const t = this.time;
       g._nodes.forEach((n, i) =>
         this._style(n, 'opacity', f3(0.5 + 0.5 * Math.max(0, Math.sin(t * 2.2 - i * 0.9)) ** 2 + 0.3 * pulse)));
+    }
+  }
+
+  /** Synthetic speech rhythm: syllable bursts (fast attack, quick decay) per band, phrase pauses. */
+  _updateSpeech(dt, rate, active) {
+    if (!active) { for (const b of this.speechBands) { b.level = 0; b.target = 0; } return; }
+    if (dt <= 0) return;
+    const c = (this.speechClock += dt);
+    if (c >= this.phraseEnd) {            // phrases of 1.2–3.2 s, separated by 0.25–0.7 s pauses
+      this.pauseEnd = c + 0.25 + Math.random() * 0.45;
+      this.phraseEnd = this.pauseEnd + 1.2 + Math.random() * 2;
+      for (const b of this.speechBands) b.target = 0;
+    }
+    const inPause = c < this.pauseEnd;
+    for (const b of this.speechBands) {
+      if (c >= b.next) {
+        b.target = inPause ? 0 : 0.25 + 0.75 * Math.random() ** 0.7;
+        b.next = c + (0.6 + Math.random() * 0.8) / rate;
+      }
+      const tau = b.target > b.level ? 0.035 : 0.11;
+      b.level += (b.target - b.level) * (1 - Math.exp(-dt / tau));
+      b.target *= Math.exp(-dt / 0.18);  // each syllable decays after its attack
     }
   }
 

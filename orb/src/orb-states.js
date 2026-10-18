@@ -56,6 +56,21 @@ export const STATE_PRESETS = {
     interface: { symbol: 'brain', symbolColor: '#fff9e6', particlesVisible: true },
   },
 
+  // Answering / speaking: idle look, but the ribbon layers jump in a voice-like rhythm
+  // (synthetic, independent of any audio feed). Starts and stops quickly so it tracks speech.
+  talking: {
+    colors: {
+      primary: '#2f7dff', secondary: '#2ee6ff', accent: '#8b6cff',
+      highlight: '#d9fbff', glow: '#3aa8ff', core: '#040815',
+    },
+    motion: {
+      animationSpeed: 1.15, breathingIntensity: 0.25, pulseIntensity: 0,
+      speechIntensity: 0.85, speechRate: 4.5, transitionPace: 0.6,
+    },
+    lighting: { glowIntensity: 0.6, innerIllumination: 0.55, outerIllumination: 0.55 },
+    interface: { symbol: 'eyes', symbolColor: '#e6fdff' },
+  },
+
   // Asleep / long idle / low-power standby: muted indigo, dim glow, slow drift, closed eyes,
   // a slow breath (~6.3 s: breathingFrequency is scaled by animationSpeed, 0.45 Hz × 0.35)
   // that swells the orb by about ±1.1 %. Falling asleep and waking up take 2.5× longer.
