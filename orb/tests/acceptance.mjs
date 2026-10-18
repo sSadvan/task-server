@@ -73,7 +73,8 @@ const page = await open('avatar.html');
 const durations = await page.evaluate(() => ({
   color: orb.getParameter('colorDuration'), motion: orb.getParameter('motionDuration'), symbol: orb.getParameter('symbolDuration'),
 }));
-const settle = Math.max(durations.color, durations.motion, durations.symbol) + 400;
+const SLEEP_PACE = await page.evaluate(() => orb.getConfig().presets.sleeping.motion.transitionPace);
+const settle = Math.max(durations.color, durations.motion, durations.symbol) * SLEEP_PACE + 400;
 const presets = await page.evaluate(() => Object.fromEntries(orb.listStates().map(s => [s, orb.getConfig().presets[s]])));
 
 await test('1. Renders with a transparent background', async () => {
@@ -93,8 +94,8 @@ await test('1. Renders with a transparent background', async () => {
   return `corner α=${px.corner}, centre α=${px.center}`;
 });
 
-await test('2. All four states activate through the API', async () => {
-  for (const s of ['idle', 'listening', 'processing', 'memory']) {
+await test('2. All states (incl. sleeping) activate through the API', async () => {
+  for (const s of ['idle', 'listening', 'processing', 'memory', 'sleeping']) {
     assert(await page.evaluate(s => orb.setState(s), s) === true, `setState(${s}) returned false`);
     assert(await page.evaluate(() => orb.getState()) === s, `getState() !== ${s}`);
     await wait(settle);
@@ -249,7 +250,7 @@ await test('8. Custom symbols register via the documented API (sanitised)', asyn
 });
 
 await test('9. Transitions work in every direction (and redirect mid-way)', async () => {
-  const states = ['idle', 'listening', 'processing', 'memory'];
+  const states = ['idle', 'listening', 'processing', 'memory', 'sleeping'];
   await page.evaluate(() => orb.resetParameters({ immediate: true }));
   const fast = { colorDuration: 250, motionDuration: 250, glowDuration: 250, generalDuration: 250, symbolDuration: 200 };
   await page.evaluate(f => orb.setParameters(f), fast);
@@ -258,7 +259,7 @@ await test('9. Transitions work in every direction (and redirect mid-way)', asyn
     if (a === b) continue;
     await page.evaluate(a => orb.setState(a, { immediate: true }), a);
     await page.evaluate(b => orb.setState(b), b);
-    await wait(500);
+    await wait(250 * SLEEP_PACE + 300);
     const got = await page.evaluate(() => ({ p: orb.svg.style.getPropertyValue('--orb-primary').trim(), sym: [...orb.symbolEls].find(([, g]) => g.style.display !== 'none')?.[0] }));
     assert(got.p === presets[b].colors.primary, `${a}→${b}: primary ${got.p}`);
     assert(got.sym === presets[b].interface.symbol, `${a}→${b}: symbol ${got.sym}`);
@@ -362,6 +363,92 @@ await test('12. Usable at 128 × 128 and 512 × 512', async () => {
     notes.push(`${size}px eye ${m.eye.toFixed(0)} / core ${m.core.toFixed(0)}`);
   }
   return notes.join('; ');
+});
+
+await test('Sleeping: slow drift, dim glow, slow breath, closed eyes, gentle in/out', async () => {
+  await page.evaluate(() => { orb.resetParameters({ immediate: true }); orb.setState('idle', { immediate: true }); });
+  const geo = () => page.evaluate(() => [...orb.svg.querySelectorAll('.orb-ribbon__body')].map(p => p.getAttribute('d')).join('|'));
+  const geoBefore = await geo();
+  await wait(300);
+  const idleRate = Math.abs(await rate('main-1', 1000));
+  const idleHalo = await page.evaluate(() => Number(orb.svg.querySelector('.orb-glow-halo').style.opacity));
+
+  // Enter sleep: sample glow + colour every frame; nothing may jump.
+  const enter = await page.evaluate(async () => {
+    orb.setState('sleeping');
+    const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+    let maxHaloStep = 0, maxColStep = 0, prevH = null, prevC = null, frames = 0;
+    const t0 = performance.now();
+    while (performance.now() - t0 < 3000) {
+      await new Promise(r => requestAnimationFrame(r));
+      const h = Number(orb.svg.querySelector('.orb-glow-halo').style.opacity);
+      const c = rgb(orb.svg.style.getPropertyValue('--orb-primary').trim());
+      if (prevH !== null) maxHaloStep = Math.max(maxHaloStep, Math.abs(h - prevH));
+      if (prevC) maxColStep = Math.max(maxColStep, Math.hypot(...c.map((x, i) => x - prevC[i])));
+      prevH = h; prevC = c; frames++;
+    }
+    return { maxHaloStep, maxColStep, frames };
+  });
+  const sleepRate = Math.abs(await rate('main-1', 1500));
+  const sleepHalo = await page.evaluate(() => Number(orb.svg.querySelector('.orb-glow-halo').style.opacity));
+  const breath = await page.evaluate(async () => {
+    const s = [];
+    const t0 = performance.now();
+    while (performance.now() - t0 < 3600) {
+      await new Promise(r => setTimeout(r, 50));
+      s.push(Number(/scale\(([\d.]+)/.exec(orb.svg.querySelector('.orb-root').getAttribute('transform'))[1]));
+    }
+    return { min: Math.min(...s), max: Math.max(...s) };
+  });
+  const eyes = await page.evaluate(() => {
+    const vis = n => { const g = orb.symbolEls.get(n); return g.style.display === 'none' ? 0 : Number(g.style.opacity); };
+    return { open: vis('eyes'), closed: vis('eyes-closed'), indicator: getComputedStyle(orb.svg.querySelector('.orb-sleep-indicator')).display };
+  });
+  const p2p = (breath.max - breath.min) * 100;
+  assert(sleepRate < idleRate * 0.45, `ribbons ${idleRate.toFixed(1)} → ${sleepRate.toFixed(1)} °/s (not much slower)`);
+  assert(sleepHalo < idleHalo * 0.5 && sleepHalo > 0.05, `halo ${idleHalo} → ${sleepHalo}`);
+  assert(enter.maxHaloStep < 0.03 && enter.maxColStep < 20, `jumps: halo ${enter.maxHaloStep.toFixed(3)}, colour ${enter.maxColStep.toFixed(1)}`);
+  assert(p2p >= 1 && p2p <= 3, `breathing swing ${p2p.toFixed(2)} % (expected ±0.5–1.5 %)`);
+  assert(eyes.open === 0 && eyes.closed > 0.5 && eyes.closed < 0.7, `eyes open ${eyes.open} closed ${eyes.closed}`);
+  assert(eyes.indicator === 'none', 'sleep indicator should be off by default');
+
+  // Configurable: indicator on, glow tweak, both through the normal parameter API.
+  await page.evaluate(() => orb.setParameters({ sleepIndicatorVisible: true, glowIntensity: 0.1 }));
+  await wait(2500);
+  const ind = await page.evaluate(() => ({
+    display: orb.svg.querySelector('.orb-sleep-indicator').style.display,
+    z: [...orb.svg.querySelectorAll('.orb-sleep-z')].map(z => Number(z.style.opacity)),
+    glow: orb.getParameter('glowIntensity'),
+  }));
+  assert(ind.display === 'inline' && ind.z.some(o => o > 0.01) && ind.glow === 0.1, `indicator/config ${JSON.stringify(ind)}`);
+  const pngs = [];
+  for (const size of [128, 512]) {
+    const p = await open('avatar.html?state=sleeping', { width: size, height: size });
+    await wait(800);
+    await p.screenshot({ omitBackground: true, path: fileURLToPath(new URL(`sleeping-${size}.png`, OUT)) });
+    pngs.push(size); await p.close();
+  }
+
+  // Wake up: back to idle values, eyes open again, geometry untouched.
+  await page.evaluate(() => orb.resetParameters({ state: 'sleeping', immediate: true }));
+  const wake = await page.evaluate(async () => {
+    orb.setState('idle');
+    const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+    let maxColStep = 0, prev = null;
+    const t0 = performance.now();
+    while (performance.now() - t0 < 3200) {
+      await new Promise(r => requestAnimationFrame(r));
+      const c = rgb(orb.svg.style.getPropertyValue('--orb-primary').trim());
+      if (prev) maxColStep = Math.max(maxColStep, Math.hypot(...c.map((x, i) => x - prev[i])));
+      prev = c;
+    }
+    const g = orb.symbolEls.get('eyes');
+    return { maxColStep, primary: orb.svg.style.getPropertyValue('--orb-primary').trim(), eyes: Number(g.style.opacity) };
+  });
+  assert(wake.primary === presets.idle.colors.primary && wake.eyes > 0.95, `wake: ${JSON.stringify(wake)}`);
+  assert(wake.maxColStep < 20, `wake colour jump ${wake.maxColStep.toFixed(1)}`);
+  assert(geoBefore === await geo(), 'ribbon geometry changed');
+  return `ribbons ${idleRate.toFixed(1)}→${sleepRate.toFixed(1)}°/s, halo ${idleHalo}→${sleepHalo}, breath ${p2p.toFixed(2)}% p2p, eyes closed @${eyes.closed}`;
 });
 
 await test('Extra: pause, reduced motion and per-frame cost', async () => {

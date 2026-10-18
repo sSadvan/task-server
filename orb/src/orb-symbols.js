@@ -9,13 +9,14 @@ export const DEFAULT_SYMBOL_OPTIONS = { scale: 1, x: 0, y: 0, color: null, opaci
 // Built-ins live in the SVG asset as `.orb-symbol[data-symbol="<name>"]` groups.
 export const BUILTIN_SYMBOLS = {
   eyes: { label: 'Eyes' },
+  'eyes-closed': { label: 'Closed eyes (sleeping)' },
   code: { label: 'Code </>' },
   soundwave: { label: 'Sound wave' },
   brain: { label: 'Brain' },
   network: { label: 'Neural network' },
 };
 
-export const SYMBOL_ALIASES = { wave: 'soundwave', neural: 'network', 'neural-network': 'network' };
+export const SYMBOL_ALIASES = { wave: 'soundwave', neural: 'network', 'neural-network': 'network', sleep: 'eyes-closed', 'closed-eyes': 'eyes-closed' };
 
 const ALLOWED_ELEMENTS = new Set(['g', 'path', 'circle', 'ellipse', 'rect', 'line', 'polyline', 'polygon']);
 const ALLOWED_ATTRS = new Set([

@@ -55,4 +55,21 @@ export const STATE_PRESETS = {
     lighting: { glowIntensity: 0.6, innerIllumination: 0.65, outerIllumination: 0.55 },
     interface: { symbol: 'brain', symbolColor: '#fff9e6', particlesVisible: true },
   },
+
+  // Asleep / long idle / low-power standby: muted indigo, dim glow, slow drift, closed eyes,
+  // a slow breath (~6.3 s: breathingFrequency is scaled by animationSpeed, 0.45 Hz × 0.35)
+  // that swells the orb by about ±1.1 %. Falling asleep and waking up take 2.5× longer.
+  sleeping: {
+    colors: {
+      primary: '#3b54a6', secondary: '#5f7bc4', accent: '#6c5cab',
+      highlight: '#aebbe6', glow: '#3d4f9c', core: '#03050f',
+    },
+    appearance: { ribbonOpacity: 0.78, highlightIntensity: 0.6 },
+    motion: {
+      animationSpeed: 0.35, ribbonAmplitude: 0.2, breathingIntensity: 0.5, breathingFrequency: 0.45,
+      pulseIntensity: 0, highlightSpeed: 0.15, transitionPace: 2.5,
+    },
+    lighting: { glowIntensity: 0.2, glowRadius: 0.35, innerIllumination: 0.22, outerIllumination: 0.3, highlightBrightness: 0.3 },
+    interface: { symbol: 'eyes-closed', symbolColor: '#9fb0e0', symbolOpacity: 0.6, sleepIndicatorVisible: false },
+  },
 };

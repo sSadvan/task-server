@@ -75,6 +75,8 @@ export const PARAMS = {
   pulseIntensity: num('motion', 0.05, 0, 1, 0.01, 'Pulse', 'Rhythmic pulse in ribbon scale, inner light and glow.'),
   pulseFrequency: num('motion', 0.5, 0.1, 4, 0.05, 'Pulse rate', 'Pulses per second.', { unit: 'Hz' }),
   highlightSpeed: num('motion', 0.3, 0, 2, 0.01, 'Highlight drift', 'Speed of the specular highlight drift.'),
+  transitionPace: num('motion', 1, 0.25, 4, 0.05, 'Transition pace',
+    'Multiplier on all transition durations when entering this state (leaving it uses the average of both states), e.g. 2.5 makes falling asleep and waking up slow and gentle.'),
 
   // ---- Lighting ----------------------------------------------------------
   glowIntensity: num('lighting', 0.55, 0, 1, 0.01, 'Glow intensity', 'Opacity of the outer halo.'),
@@ -95,6 +97,7 @@ export const PARAMS = {
   blink: bool('interface', true, 'Blink', 'Occasional eye blink (disabled under reduced motion).'),
   soundwaveVisible: bool('interface', false, 'Sound-wave rings', 'Liquid sound-wave rings around the orb.'),
   particlesVisible: bool('interface', false, 'Particles', 'Small drifting particles.'),
+  sleepIndicatorVisible: bool('interface', false, 'Sleep indicator', 'Two tiny "z" marks that float up and fade, very slowly.'),
   audioReactivity: num('interface', 0, 0, 1, 0.01, 'Audio reactivity',
     'How strongly setAudioLevel() drives the rings, pulse and sound-wave symbol.'),
 

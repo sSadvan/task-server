@@ -119,6 +119,8 @@ export class OrbEngine {
     this.breathPhase = 0;
     this.highlightPhase = 0;
     this.ringPhase = 0;
+    this.sleepPhase = 0;
+    this.durationScale = 1;
     this.audio = 0;
     this.audioTarget = 0;
     this.audioStamp = 0;
@@ -163,6 +165,13 @@ export class OrbEngine {
     const previous = this.state;
     this.state = key;
     this.svg.dataset.state = key;
+    // Entering a state uses its transitionPace; leaving one averages both, so e.g. waking up
+    // from sleep is as gentle as falling asleep.
+    if (previous !== key) {
+      const pace = s => this.presets[s]?.transitionPace ?? 1;
+      this.durationScale = (pace(previous) + pace(key)) / 2;
+      if (pace(key) > pace(previous)) this.durationScale = pace(key);
+    }
     this._retarget(immediate);
     if (previous !== key) this._emit('statechange', { state: key, previous });
     return true;
@@ -425,6 +434,8 @@ export class OrbEngine {
       soundwaves: q('.orb-soundwaves'),
       rings: [...this.svg.querySelectorAll('.orb-soundwave')],
       particles: q('.orb-particles'),
+      sleepIndicator: q('.orb-sleep-indicator'),
+      sleepZs: [...this.svg.querySelectorAll('.orb-sleep-z')].map(z => ({ el: z, base: z.getAttribute('transform') || '' })),
       particleDots: [...this.svg.querySelectorAll('.orb-particles circle')],
       layers: {},
       ribbons: [],
@@ -607,7 +618,7 @@ export class OrbEngine {
       tw.from = tw.type === 'color' ? [...tw.value] : tw.value;
       tw.to = to;
       tw.t0 = now;
-      tw.dur = immediate ? 0 : this.global[DURATION_FOR_GROUP[tw.group]] ?? 600;
+      tw.dur = immediate ? 0 : (this.global[DURATION_FOR_GROUP[tw.group]] ?? 600) * this.durationScale;
       tw.done = false;
       if (immediate) { this._sample(tw, now); this.v[key] = this._fromInternal(tw); }
     }
@@ -769,6 +780,22 @@ export class OrbEngine {
       }
     }
 
+    // ---- sleep indicator: two tiny z marks drifting up and fading (real time, ~7 s cycle) ----
+    if (this.el.sleepIndicator) {
+      const o = clamp(v.sleepIndicatorVisible);
+      this._style(this.el.sleepIndicator, 'display', o < 0.002 ? 'none' : 'inline');
+      if (o >= 0.002) {
+        this.sleepPhase += this.paused ? 0 : dt / 7;
+        this._style(this.el.sleepIndicator, 'opacity', f3(o));
+        this.el.sleepZs.forEach((z, i) => {
+          const t = (this.sleepPhase + i * 0.5) % 1;
+          const rise = this.reduced ? 0 : -16 * t;
+          this._attr(z.el, 'transform', `translate(${f3(3 * t)} ${f3(rise)}) ${z.base}`);
+          this._style(z.el, 'opacity', f3(0.55 * Math.sin(Math.PI * t) ** 2));
+        });
+      }
+    }
+
     // ---- particles ---------------------------------------------------------------
     if (this.el.particles) {
       const o = clamp(v.particlesVisible);
@@ -784,7 +811,7 @@ export class OrbEngine {
 
   _renderSymbol(now, dt, pulse, audio) {
     const v = this.v;
-    const half = Math.max(1, this.global.symbolDuration / 2);
+    const half = Math.max(1, (this.global.symbolDuration * this.durationScale) / 2);
     // Sequential cross-fade: fade the shown symbol out, swap, fade the new one in. A new
     // request mid-fade just changes the target, so symbols never overlap or jump.
     if (this.symbolShown !== this.symbolTarget) {

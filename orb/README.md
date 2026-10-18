@@ -4,7 +4,8 @@ This is a programmable, animated SVG avatar for a personal AI assistant. It is a
 translucent core wrapped in flowing light ribbons, with minimal eyes or a replaceable symbol
 in the centre. A small JavaScript engine animates it and moves it smoothly between states:
 **idle**, **listening**, **processing** and **memory**. It is ready to embed in a frameless,
-transparent desktop window.
+transparent desktop window. A fifth state, **sleeping**, covers long idle periods and
+low-power standby.
 
 It has no dependencies: plain SVG, CSS and ES modules, with no build step and no external
 services.
@@ -98,7 +99,7 @@ The SVG has no fixed size and fills its host. Size the host with `width` or `--o
 ## Public API
 
 ```js
-orb.setState('listening')                 // 'idle' | 'listening' | 'processing' | 'memory' | registered
+orb.setState('listening')                 // 'idle' | 'listening' | 'processing' | 'memory' | 'sleeping' | registered
 orb.setParameter('glowIntensity', 0.8)
 orb.setParameter('animationSpeed', 1.4)
 orb.setParameters({ pulseIntensity: 0.5, lighting: { glowRadius: 0.7 } })  // flat or grouped
@@ -148,9 +149,49 @@ orb.getState(); orb.getParameter('glowIntensity'); orb.getParameters({ grouped: 
 | `listening` | Green | eyes | Sound-wave rings, stronger pulse, reacts to `setAudioLevel()` (also animates without input) |
 | `processing` | Magenta / crimson | code `</>` | Faster ribbons (`animationSpeed` 2.2 is the configurable processing speed), stronger inner light and glow |
 | `memory` | Gold / amber | brain | Slower ribbons, rhythmic pulse, warm inner light, drifting particles |
+| `sleeping` | Muted indigo / blue-violet | eyes-closed | Very slow drift, dim glow, faint inner light, slow breath; optional "z" indicator |
 
 The presets live in `src/orb-states.js` and list only what differs from the schema defaults.
 That means a new parameter automatically gets a sensible value in every state.
+
+### Sleeping
+
+`orb.setState('sleeping')` puts the assistant to sleep, and `orb.setState('idle')` (or any
+other state) wakes it.
+
+**What changes while asleep:**
+- The palette shifts to desaturated indigo, while the ribbon edges keep a soft highlight.
+- The halo drops to about a third of the idle glow, and a faint inner light remains.
+- Ribbons drift at roughly 30 % of idle speed, with less wobble. All layers are kept.
+- The orb breathes slowly. The cycle is about 6.3 s, because `breathingFrequency` (0.45) is
+  multiplied by `animationSpeed` (0.35). The orb swells by about ±1.1 %, and the glow by about
+  ±7 %.
+- The pulse is off.
+- The open eyes fade out and two dim closed-eye curves fade in. This is the `eyes-closed`
+  symbol, at `symbolOpacity` 0.6.
+- Falling asleep is slow: `transitionPace` is 2.5, so every transition takes 2.5× its normal
+  duration. Waking takes the average of both states' paces, about 1.75×.
+
+**Parameters that tune sleep** all belong to the sleeping preset and are edited like any
+other:
+
+| Parameter | Controls |
+| --- | --- |
+| `animationSpeed` | How slowly everything moves |
+| `glowIntensity`, `glowRadius`, `innerIllumination` | How dim the orb is |
+| `breathingIntensity`, `breathingFrequency` | Breath depth and rate (`breathingFrequency` is the breathing-duration control; cycle seconds = 1 / (frequency × animationSpeed)) |
+| `pulseIntensity` | Kept at 0 while asleep |
+| `ribbonOpacity`, `ribbonAmplitude` | How faint the ribbons are and how much they float |
+| `symbolOpacity` | Eye dimness |
+| `sleepIndicatorVisible` | Turns on two tiny "z" marks that float up and fade (off by default) |
+| `transitionPace` | How slowly it falls asleep |
+
+For example:
+
+```js
+orb.setState('sleeping');
+orb.setParameters({ sleepIndicatorVisible: true, glowIntensity: 0.12 });   // edits the sleeping preset
+```
 
 ### Transitions
 
@@ -217,6 +258,7 @@ with a console warning. Most values are normalised to 0–1.
 | `pulseIntensity` | number | 0 – 1 | `0.05` | Rhythmic pulse in ribbon scale, inner light and glow. |
 | `pulseFrequency` | number | 0.1 – 4 Hz | `0.5` | Pulses per second. |
 | `highlightSpeed` | number | 0 – 2 | `0.3` | Speed of the specular highlight drift. |
+| `transitionPace` | number | 0.25 – 4 | `1` | Multiplier on all transition durations when entering this state (leaving it uses the average of both states), e.g. 2.5 makes falling asleep and waking up slow and gentle. |
 
 #### Lighting *(per state)*
 
@@ -242,6 +284,7 @@ with a console warning. Most values are normalised to 0–1.
 | `blink` | boolean | true / false | `true` | Occasional eye blink (disabled under reduced motion). |
 | `soundwaveVisible` | boolean | true / false | `false` | Liquid sound-wave rings around the orb. |
 | `particlesVisible` | boolean | true / false | `false` | Small drifting particles. |
+| `sleepIndicatorVisible` | boolean | true / false | `false` | Two tiny "z" marks that float up and fade, very slowly. |
 | `audioReactivity` | number | 0 – 1 | `0` | How strongly setAudioLevel() drives the rings, pulse and sound-wave symbol. |
 
 #### Layers *(global — shared by all states)*
@@ -286,6 +329,7 @@ rear and front layers counter-rotate against the inner and main layers by defaul
 | Name | Visual | Animated detail |
 | --- | --- | --- |
 | `eyes` | Two vertical glowing ovals | Occasional blink, sometimes a double blink (off under reduced motion) |
+| `eyes-closed` | Two soft lid curves (aliases `sleep`, `closed-eyes`) | None; used by the sleeping state |
 | `code` | `</>` | none |
 | `soundwave` | Six equaliser bars (alias `wave`) | Bars move gently, and follow the audio level when `audioReactivity` > 0 |
 | `brain` | Two hemispheres with folds | Folds glow in sequence |
@@ -385,7 +429,8 @@ The engine finds elements by these classes, never by id:
 | 7 | `.orb-interface` › `.orb-symbol-stage` › `.orb-symbol[data-symbol]` | Position, scale, cross-fade, blink, bars, nodes |
 | 8 | `.orb-foreground-ribbons` › `.orb-ribbon--front` | As rear ribbons |
 | 9 | `.orb-soundwaves` › `.orb-soundwave` | Live wave shape (only while visible) |
-| 10 | `.orb-particles` | Slow orbit and twinkle (only while visible) |
+| 10 | `.orb-sleep-indicator` › `.orb-sleep-z` | Float and fade (only while visible) |
+| 11 | `.orb-particles` | Slow orbit and twinkle (only while visible) |
 
 **Colours.** The palette reaches the gradients through CSS custom properties on the `<svg>`:
 `--orb-primary`, `--orb-secondary`, `--orb-accent`, `--orb-highlight`, `--orb-glow`,
