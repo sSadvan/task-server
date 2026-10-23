@@ -1,0 +1,20 @@
+{
+  "model": "sonnet",
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Edit(knowledge/lessons.md)",
+      "Bash(python ../tools/figma_png.py:*)",
+      "Bash(python ../tools/deliver.py:*)",
+      "mcp__figma"
+    ],
+    "deny": [
+      "Bash(rm:*)",
+      "Bash(git push:*)",
+      "Read(../.env)"
+    ]
+  },
+  "enableAllProjectMcpServers": true
+}

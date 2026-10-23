@@ -1,0 +1,9 @@
+.env
+*/inbox/*
+*/work/*
+!*/inbox/.gitkeep
+!*/work/.gitkeep
+journal.jsonl
+done/*
+!done/.gitkeep
+__pycache__/
